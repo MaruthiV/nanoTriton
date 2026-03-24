@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "gpucc"
+version = "0.1.0"
+description = "A Python-to-GPU kernel compiler (mini-Triton from scratch)"
+requires-python = ">=3.10"
+dependencies = []  # no runtime deps — CuPy is optional (for GPU execution)
+
+[project.optional-dependencies]
+gpu = ["cupy-cuda12x"]   # adjust version for your CUDA install
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gpucc*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
