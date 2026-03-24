@@ -45,7 +45,7 @@ class GPURunner:
         backend   : 'ptx' (default) or 'cubin'
     """
 
-    def __init__(self, ptx: str, fn_name: str, backend: str = "ptx"):
+    def __init__(self, ptx: str, fn_name: str):
         try:
             import cupy as cp
         except ImportError:
@@ -54,9 +54,27 @@ class GPURunner:
                 "Install via: pip install cupy-cuda12x  (adjust for your CUDA version)"
             )
 
-        self._mod = cp.RawModule(code=ptx, backend=backend)
+        import os
+        import tempfile
+
+        # Write PTX to a temp file and load via path — CuPy's path loader calls
+        # cuModuleLoad which handles PTX natively (no backend= needed).
+        tmp = tempfile.NamedTemporaryFile(suffix='.ptx', mode='w', delete=False)
+        tmp.write(ptx)
+        tmp.flush()
+        tmp.close()
+        self._ptx_path = tmp.name
+
+        self._mod = cp.RawModule(path=self._ptx_path)
         self._fn  = self._mod.get_function(fn_name)
         self._fn_name = fn_name
+
+    def __del__(self):
+        import os
+        try:
+            os.unlink(self._ptx_path)
+        except Exception:
+            pass
 
     def __call__(
         self,
