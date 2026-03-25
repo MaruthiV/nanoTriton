@@ -106,18 +106,17 @@ class PTXEmitter:
 
     def _emit_reg_declarations(self) -> None:
         a = self._alloc
-        # Extra rd registers needed for address calculation temporaries
-        # We add headroom: 3 extra %rd regs per LOAD/STORE instruction
+        # Temp %rd registers start at fn.vreg_count and consume 3 slots per mem op.
+        # Declaration count must cover the highest temp ID used.
         n_mem_ops = sum(
             1 for instr in self._fn.all_instructions()
             if instr.op in (Op.LOAD, Op.STORE)
         )
-        extra_rd = n_mem_ops * 3  # cvta result, offset, address
 
         counts = {
             "f":  a.declaration_count("f"),
             "r":  a.declaration_count("r"),
-            "rd": a.declaration_count("rd") + extra_rd + 2,  # +2 for param loads
+            "rd": self._fn.vreg_count + n_mem_ops * 3,
             "p":  a.declaration_count("p"),
         }
 
@@ -441,9 +440,11 @@ class PTXEmitter:
             return self._alloc.ptx_name(op)
         if isinstance(op, Const):
             if isinstance(op.type, Float32Type):
-                # PTX requires float literals in hex or decimal with explicit type context
-                # Using decimal notation here — ptxas accepts it
-                return f"{op.value:g}"
+                # PTX requires a decimal point for float literals — 0 is rejected, 0.0 is not
+                s = f"{op.value:g}"
+                if '.' not in s and 'e' not in s and 'E' not in s:
+                    s += '.0'
+                return s
             return str(int(op.value))
         raise TypeError(f"Unknown operand type: {type(op)}")
 
