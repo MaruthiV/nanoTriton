@@ -414,7 +414,7 @@ def demo_vector_add() -> None:
     src = textwrap.dedent("""\
         @kernel
         def vector_add(a: float32[N], b: float32[N], c: float32[N], n: int32):
-            tid = thread_id()
+            tid = block_id(0) * block_size(0) + thread_id(0)
             if tid < n:
                 c[tid] = a[tid] + b[tid]
     """)
@@ -423,7 +423,7 @@ def demo_vector_add() -> None:
 
     @kernel
     def vector_add(a: float32[N], b: float32[N], c: float32[N], n: int32):
-        tid = thread_id()
+        tid = block_id(0) * block_size(0) + thread_id(0)
         if tid < n:
             c[tid] = a[tid] + b[tid]
 
